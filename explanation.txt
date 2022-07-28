@@ -1,10 +1,5 @@
-ReadMe File
-
 HIGH-G SYSTEM
-
 Automatic Hand Sanitizer Dispenser with in-built COVID-19 Tracker:
-~B. Kaushic Aravind, 2018115046
-Ananya Jaya Kumar, 2018115140
 
 Components Required:
 Tank
