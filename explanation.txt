@@ -1,0 +1,155 @@
+ReadMe File
+
+HIGH-G SYSTEM
+
+Automatic Hand Sanitizer Dispenser with in-built COVID-19 Tracker:
+~B. Kaushic Aravind, 2018115046
+Ananya Jaya Kumar, 2018115140
+
+Components Required:
+Tank
+Motor
+UltraSonic Sensor
+16*2 LCD Display
+ESP 32 WiFi Module
+Relay Module (helps connect with processor and motor inside)
+Hand Sanitizer
+
+How it works:
+The product is “HIGH-G-SYSTEM” which basically aims at providing touchless sanitizer dispensers which is compact and which has an in-built corona virus updates display.
+
+It uses an Espressif development module (ESP32) as the processor, and a sensor to detect movement for the ejection of the sanitizer, LCD display for the display of COVID-19 updates. The project has been completed with lesser cost and higher efficiency.
+
+Once the user keeps their hand at a gap of 15mm or below from the sensor, the hand sanitizer will be ejected for 2 seconds continuously, hence providing the user a comfortable and safe use.
+
+Code Explanation:
+
+const char* ssid = "Galaxy-M20"; 
+const char* pass = "ac312124"; //The phone model and hotspot password connected to the WiFi module.
+
+ESP32 is a WiFi module that’ll be connected to our mobile’s hotspot in order to pull in data from a link that we’re provided in our code.
+
+The URL: ”https://services1.arcgis.com/0MSEUqKaxRlEPj5g/arcgis/rest/ services/ncov_... (Country_Region=%27India%27)&returnGeometry=false&outFields=Country_Regio n,Confirmed,Recovered"; 
+
+const int rs = 22, en = 4, d4 = 15, d5 = 13, d6 = 26, d7 = 21; //LCD’s pins
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7); //declaring the pins of the LCD
+
+const int trigPin = 5; const int echoPin = 18; //UltraSonic Sensor’s pins
+const int pump = 19; //motor
+
+/* The setup() function is called when a sketch starts. Use it to initialize variables
+pin modes, start using libraries, etc. The setup() function will only run once, after each powerup or reset of the ESP board. */
+
+void setup() 
+{ 
+	Serial.begin(115200); 
+	delay(2000); //timer-delay for the motor
+	pinMode(trigPin, OUTPUT); pinMode(echoPin, INPUT); pinMode(pump, OUTPUT); //declaring the pins as output/input
+	digitalWrite(pump, LOW); 
+	lcd.begin(16, 2); 
+	lcd.clear(); 
+	lcd.setCursor(0,0); 
+	lcd.print("Covid19 Tracker"); 
+	lcd.setCursor(0,1); 
+	lcd.print("Hand Sanitizer"); 
+	Serial.println("Connecting to "); 
+	Serial.println(ssid); 
+	WiFi.begin(ssid, pass); 
+	while (WiFi.status() != WL_CONNECTED) 
+	{ 
+		delay(500); Serial.print("."); // print ... till not connected 
+	} 
+	Serial.println("WiFi connected"); 
+/* from lcd.begin() to “WiFi connected”, the code helps to connect the ESP to the WiFi and initialize the LCD with the given messages.*/
+} 
+
+//ultra() function
+
+void ultra()
+{ 
+	digitalWrite(trigPin, LOW); 
+	delayMicroseconds(2); 
+	digitalWrite(trigPin, HIGH); 
+	delayMicroseconds(10); 
+	digitalWrite(trigPin, LOW); 
+	duration = pulseIn(echoPin, HIGH); 
+	distance = duration * 0.0340 / 2; 
+	Serial.println("Distance"); 
+	Serial.println(distance); 
+	if (distance <= 15)
+	{ 
+		Serial.print("Opening Pump"); 
+		digitalWrite(pump, HIGH); 
+		delay(2000); 
+		digitalWrite(pump, LOW); 
+		ESP.restart(); 
+	} 
+} 
+
+*/ This function uses the distance formula to calculates the distance between the hand and the sensor. So, everytime the distance is lesser than 15 mm, the circuit inside the relay module for the motor gets completed. Therefore, the sanitizer is pumped out for 2 seconds and the trigger pin is set to low. This cycle continues whenever the hand is kept under the sensor. */
+
+//loop() function:
+/* The loop() function runs forever (i.e) it does the functionality of the system */
+
+void loop() 
+{ 
+	ultra(); 
+	HTTPClient https; 
+	String data; 
+	https.begin(url); 
+	int httpCode = https.GET(); 
+	if (httpCode > 0) 
+	{ 
+		//Check for the returning code 
+		String payload = https.getString(); 
+		char charBuf[500]; 
+		payload.toCharArray(charBuf, 500); 
+		//Serial.println(payload); 
+		const size_t capacity = JSON_ARRAY_SIZE(1) + JSON_ARRAY_SIZE(4) + JSON_OBJECT_SIZE(1) + 2 * JSON_OBJECT_SIZE(2) + JSON_OBJECT_SIZE(4) + 3 * JSON_OBJECT_SIZE(6) + 2 * JSON_OBJECT_SIZE(7) + 690; 
+		DynamicJsonDocument doc(capacity); 
+		deserializeJson(doc, payload); 
+		JsonArray fields = doc["fields"]; 
+		JsonObject features_0_attributes = doc["features"][0]["attributes"]; 
+		long features_0_attributes_Last_Update = features_0_attributes["Last_Update"]; 
+		int features_0_attributes_Confirmed = features_0_attributes["Confirmed"]; 
+		//int features_0_attributes_Deaths = features_0_attributes["Deaths"]; 
+		int features_0_attributes_Recovered = features_0_attributes["Recovered"]; 
+		if (count < 3)
+		{ 
+			//Serial.println(features_0_attributes_Confirmed); 
+			lcd.setCursor(0, 0); 
+			lcd.print("IN Confirmed:"); 
+			lcd.print(features_0_attributes_Confirmed); 
+			//Serial.println(features_0_attributes_Recovered); 
+			lcd.setCursor(0, 1); 
+			lcd.print("IN Recovered:"); 
+			lcd.print(features_0_attributes_Recovered); 
+		} 
+		if (count > 3)
+		{ 
+			lcd.clear(); 
+			lcd.setCursor(0, 0); 
+			lcd.print("Wash Hands"); 
+			lcd.setCursor(0, 1); 
+			lcd.print("Avoid Contacts"); 
+		} 
+		if (count > 6)
+		{ 
+			count = 0; 
+		} 
+	} 
+	else 
+	{ 
+		Serial.println("Error on HTTP request"); 
+	} 
+	https.end(); 
+	count++; 
+} 
+
+/* This function uses the URL given in the code and calls the API from the website in order to pull in the number of active and recovered cases in India which will be displayed in the LCD. The information from the API is converted into a JSON file from which only the active and recovered cases are used. This function is also used to display awareness messages like “Wash Hands” and “Avoid Contact”.*/
+
+
+
+
+
+
